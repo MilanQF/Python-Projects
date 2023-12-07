@@ -1,0 +1,98 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
+from catboost import CatBoostRegressor
+from sklearn.metrics import median_absolute_error
+
+# Load data
+train_data = pd.read_csv('/kaggle/input/playground-series-s3e25/train.csv')
+test_data = pd.read_csv('/kaggle/input/playground-series-s3e25/test.csv')
+
+# Select features
+all_features = ['allelectrons_Total', 'density_Total', 'allelectrons_Average',
+                'val_e_Average', 'atomicweight_Average', 'ionenergy_Average',
+                'el_neg_chi_Average', 'R_vdw_element_Average', 'R_cov_element_Average',
+                'zaratio_Average', 'density_Average']
+
+X = train_data[all_features]
+Y = train_data['Hardness']
+
+# Split the data for model evaluation
+X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+# Standardize features for SVM
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+
+# Random Forest Regressor with Grid Search
+rf_param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+rf_regressor = RandomForestRegressor(random_state=42)
+grid_search_rf = GridSearchCV(rf_regressor, param_grid=rf_param_grid, scoring='neg_median_absolute_error', cv=5)
+grid_search_rf.fit(X_train, Y_train)
+best_rf_regressor = grid_search_rf.best_estimator_
+
+# SVM Regressor with RBF Kernel and Grid Search
+svm_param_grid = {
+    'C': [0.1, 1, 10],
+    'epsilon': [0.01, 0.1, 0.2]
+}
+
+svm_rbf_regressor = SVR(kernel='rbf')
+grid_search_svm = GridSearchCV(svm_rbf_regressor, param_grid=svm_param_grid, scoring='neg_median_absolute_error', cv=5)
+grid_search_svm.fit(X_train_scaled, Y_train)
+best_svm_rbf_regressor = grid_search_svm.best_estimator_
+
+# CatBoost Regressor with Grid Search
+catboost_param_grid = {
+    'iterations': [1000],
+    'depth': [6, 8, 10],
+    'learning_rate': [0.05, 0.1, 0.2]
+}
+
+catboost_regressor = CatBoostRegressor(loss_function='MAE', random_seed=42, verbose=999)
+grid_search_catboost = GridSearchCV(catboost_regressor, param_grid=catboost_param_grid, scoring='neg_median_absolute_error', cv=5)
+grid_search_catboost.fit(X_train, Y_train)
+best_catboost_regressor = grid_search_catboost.best_estimator_
+
+# Model Evaluation
+def evaluate_regressor(model, X_val, Y_val):
+    Y_val_pred = model.predict(X_val)
+    medae = median_absolute_error(Y_val, Y_val_pred)
+    print(f"Median Absolute Error: {medae}")
+
+# Evaluate the best models
+print("Random Forest Regressor:")
+evaluate_regressor(best_rf_regressor, X_val, Y_val)
+
+print("\nSVM Regressor with RBF Kernel:")
+evaluate_regressor(best_svm_rbf_regressor, X_val_scaled, Y_val)
+
+print("\nCatBoost Regressor:")
+evaluate_regressor(best_catboost_regressor, X_val, Y_val)
+
+# Make Predictions on the test set
+test_features = test_data[all_features]
+
+# Predictions using the best models
+test_predictions_rf = best_rf_regressor.predict(test_features)
+test_predictions_svm = best_svm_rbf_regressor.predict(scaler.transform(test_features))
+test_predictions_catboost = best_catboost_regressor.predict(test_features)
+
+# Save predictions to the submission file
+#submission_rf = pd.DataFrame({'id': test_data['id'], 'Hardness': test_predictions_rf})
+#submission_rf.to_csv('submission_rf.csv', index=False)
+
+#submission_svm = pd.DataFrame({'id': test_data['id'], 'Hardness': test_predictions_svm})
+#submission_svm.to_csv('submission_svm.csv', index=False)
+
+submission_catboost = pd.DataFrame({'id': test_data['id'], 'Hardness': test_predictions_catboost})
+submission_catboost.to_csv('submission.csv', index=False)
