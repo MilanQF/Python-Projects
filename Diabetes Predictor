@@ -1,0 +1,115 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, VotingClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from catboost import CatBoostClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+# Load your data
+# Assuming your data is in a CSV file named 'diabetes_data.csv'
+data = pd.read_csv('/kaggle/input/early-stage-diabetes-risk-prediction/diabetes_risk_prediction_dataset.csv')
+
+# Convert string labels to numeric labels
+data['class'] = data['class'].map({'Negative': 0, 'Positive': 1})
+
+# Separate features and target variable
+X = data.drop('class', axis=1)
+y = data['class']
+
+# Convert categorical variables to numerical using one-hot encoding
+X = pd.get_dummies(X)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features using StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Random Forest
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train_scaled, y_train)
+rf_predictions = rf_model.predict(X_test_scaled)
+rf_accuracy = accuracy_score(y_test, rf_predictions)
+rf_precision = precision_score(y_test, rf_predictions, pos_label=1)
+rf_recall = recall_score(y_test, rf_predictions, pos_label=1)
+rf_f1 = f1_score(y_test, rf_predictions, pos_label=1)
+print("Random Forest Accuracy:", rf_accuracy)
+print("Random Forest Precision:", rf_precision)
+print("Random Forest Recall:", rf_recall)
+print("Random Forest F1-score:", rf_f1)
+
+
+# Random Forest
+
+
+# Decision Tree
+dt_model = DecisionTreeClassifier(random_state=42)
+dt_model.fit(X_train_scaled, y_train)
+dt_predictions = dt_model.predict(X_test_scaled)
+dt_accuracy = accuracy_score(y_test, dt_predictions)
+dt_precision = precision_score(y_test, dt_predictions)
+dt_recall = recall_score(y_test, dt_predictions)
+dt_f1 = f1_score(y_test, dt_predictions)
+print("Decision Tree Accuracy:", dt_accuracy)
+print("Decision Tree Precision:", dt_precision)
+print("Decision Tree Recall:", dt_recall)
+print("Decision Tree F1-score:", dt_f1)
+
+# Support Vector Machine
+svm_model = SVC(random_state=42)
+svm_model.fit(X_train_scaled, y_train)
+svm_predictions = svm_model.predict(X_test_scaled)
+svm_accuracy = accuracy_score(y_test, svm_predictions)
+svm_precision = precision_score(y_test, svm_predictions)
+svm_recall = recall_score(y_test, svm_predictions)
+svm_f1 = f1_score(y_test, svm_predictions)
+print("Support Vector Machine Accuracy:", svm_accuracy)
+print("Support Vector Machine Precision:", svm_precision)
+print("Support Vector Machine Recall:", svm_recall)
+print("Support Vector Machine F1-score:", svm_f1)
+
+# CatBoost
+catboost_model = CatBoostClassifier(random_state=42, verbose=0)
+catboost_model.fit(X_train_scaled, y_train)
+catboost_predictions = catboost_model.predict(X_test_scaled)
+catboost_accuracy = accuracy_score(y_test, catboost_predictions)
+catboost_precision = precision_score(y_test, catboost_predictions)
+catboost_recall = recall_score(y_test, catboost_predictions)
+catboost_f1 = f1_score(y_test, catboost_predictions)
+print("CatBoost Accuracy:", catboost_accuracy)
+print("CatBoost Precision:", catboost_precision)
+print("CatBoost Recall:", catboost_recall)
+print("CatBoost F1-score:", catboost_f1)
+
+# AdaBoost
+adaboost_model = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(random_state=42), n_estimators=50, random_state=42)
+adaboost_model.fit(X_train_scaled, y_train)
+adaboost_predictions = adaboost_model.predict(X_test_scaled)
+adaboost_accuracy = accuracy_score(y_test, adaboost_predictions)
+adaboost_precision = precision_score(y_test, adaboost_predictions)
+adaboost_recall = recall_score(y_test, adaboost_predictions)
+adaboost_f1 = f1_score(y_test, adaboost_predictions)
+print("AdaBoost Accuracy:", adaboost_accuracy)
+print("AdaBoost Precision:", adaboost_precision)
+print("AdaBoost Recall:", adaboost_recall)
+print("AdaBoost F1-score:", adaboost_f1)
+
+# Ensemble Model (Voting Classifier)
+ensemble_model = VotingClassifier(estimators=[
+    ('Random Forest', rf_model),
+    ('CatBoost', catboost_model)
+], voting='hard')
+ensemble_model.fit(X_train_scaled, y_train)
+ensemble_predictions = ensemble_model.predict(X_test_scaled)
+ensemble_accuracy = accuracy_score(y_test, ensemble_predictions)
+ensemble_precision = precision_score(y_test, ensemble_predictions)
+ensemble_recall = recall_score(y_test, ensemble_predictions)
+ensemble_f1 = f1_score(y_test, ensemble_predictions)
+print("Ensemble Model Accuracy:", ensemble_accuracy)
+print("Ensemble Model Precision:", ensemble_precision)
+print("Ensemble Model Recall:", ensemble_recall)
+print("Ensemble Model F1-score:", ensemble_f1)
